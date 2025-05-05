@@ -7,8 +7,9 @@ import jakarta.persistence.*;
 public class Tutorial {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	private long id;
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+
 
 	@Column(name = "title")
 	private String title;
@@ -16,11 +17,11 @@ public class Tutorial {
 	@Column(name = "description")
 	private String description;
 
+
 	@Column(name = "published")
 	private boolean published;
 
 	public Tutorial() {
-
 	}
 
 	public Tutorial(String title, String description, boolean published) {
