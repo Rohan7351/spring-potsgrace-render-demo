@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -30,9 +33,12 @@ public class TutorialController {
 	TutorialRepository tutorialRepository;
 
 	@GetMapping("/tutorials")
+	@Cacheable(key = "#title!=null ? #title : 'all'", value = "tutorials")
 	public ResponseEntity<List<Tutorial>> getAllTutorials(@RequestParam(required = false) String title) {
 		try {
 			List<Tutorial> tutorials = new ArrayList<Tutorial>();
+			System.out.println("Fetching list from DB ....");
+
 
 			if (title == null)
 				tutorialRepository.findAll().forEach(tutorials::add);
@@ -50,16 +56,22 @@ public class TutorialController {
 	}
 
 	@GetMapping("/tutorials/{id}")
+	@Cacheable(key = "#id" , value = "tutorial")
 	public ResponseEntity<Tutorial> getTutorialById(@PathVariable("id") long id) {
 		Optional<Tutorial> tutorialData = tutorialRepository.findById(id);
+		System.out.println("Fetching object from DB....");
 
 		if (tutorialData.isPresent()) {
-			return new ResponseEntity<>(tutorialData.get(), HttpStatus.OK);
+			return ResponseEntity
+					.status(200)
+					.header("X-Cache", "MISS")
+					.body(tutorialData.get());
 		} else {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 	}
 
+	@CacheEvict(value = "tutorials", allEntries = true)
 	@PostMapping("/tutorials")
 	public ResponseEntity<Tutorial> createTutorial(@RequestBody Tutorial tutorial) {
 		try {
@@ -72,6 +84,8 @@ public class TutorialController {
 	}
 
 	@PutMapping("/tutorials/{id}")
+	@CachePut(value = "tutorial", key = "#id")
+	@CacheEvict(value = "tutorials", allEntries = true)
 	public ResponseEntity<Tutorial> updateTutorial(@PathVariable("id") long id, @RequestBody Tutorial tutorial) {
 		Optional<Tutorial> tutorialData = tutorialRepository.findById(id);
 
@@ -87,6 +101,7 @@ public class TutorialController {
 	}
 
 	@DeleteMapping("/tutorials/{id}")
+	@CacheEvict(value = {"tutorials", "tutorial"}, allEntries = true)
 	public ResponseEntity<HttpStatus> deleteTutorial(@PathVariable("id") long id) {
 		try {
 			tutorialRepository.deleteById(id);
@@ -97,6 +112,7 @@ public class TutorialController {
 	}
 
 	@DeleteMapping("/tutorials")
+	@CacheEvict(value = {"tutorials", "tutorial"}, allEntries = true)
 	public ResponseEntity<HttpStatus> deleteAllTutorials() {
 		try {
 			tutorialRepository.deleteAll();
